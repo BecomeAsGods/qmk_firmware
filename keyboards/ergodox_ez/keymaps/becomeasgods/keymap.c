@@ -9,7 +9,6 @@
 #include "action_layer.h"
 #include "action_util.h"
 #include "timer.h"
-#include "keymap_plover.h"
 #include "eeconfig.h"
 #include "wait.h"
 #include "version.h"
@@ -19,12 +18,9 @@
 
 enum {
   BASE = 0,
-  ADORE,
   ARRW,
-  APPSEL,
-  HUN,
+  GAME,
   NMDIA,
-  PLVR,
 };
 
 /* Macros */
@@ -32,30 +28,7 @@ enum {
 enum {
   NONE = 0,
   // Buttons that do extra stuff
-  A_GUI,
-  A_PLVR,
   A_MPN,
-
-  // Application select keys
-  APP_SLK,  // Slack
-  APP_EMCS, // Emacs
-  APP_TERM, // Terminal
-  APP_CHRM, // Chrome
-  APP_MSIC, // Music
-  APP_SOCL, // Social
-  APP_PMGR, // Password manager
-  APP_SCL2, // Social #2
-
-  // Hungarian layer keys
-  HU_AA, // Á
-  HU_OO, // Ó
-  HU_EE, // É
-  HU_UU, // Ú
-  HU_II, // Í
-  HU_OE, // Ö
-  HU_UE, // Ü
-  HU_OEE, // Ő
-  HU_UEE, // Ű
 
   // number/symbol keys
   A_1, // 1
@@ -77,8 +50,6 @@ enum {
 
 enum {
   F_BSE = 0,
-  F_HUN,
-  F_GUI,
   F_SFT,
   F_ALT,
   F_CTRL
@@ -91,14 +62,10 @@ enum {
   CT_TA,
   CT_LBP,
   CT_RBP,
-  CT_TMUX,
-  CT_TPS,
   CT_SR,
 };
 
 /* States & timers */
-
-uint16_t gui_timer = 0;
 
 #if KEYLOGGER_ENABLE
 # ifdef AUTOLOG_ENABLE
@@ -111,8 +78,6 @@ bool log_enable = false;
 bool time_travel = false;
 bool skip_leds = false;
 
-static uint8_t is_adore = 0;
-
 /* The Keymap */
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
@@ -120,13 +85,13 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 /* Keymap 0: Base Layer
  *
  * ,-----------------------------------------------------.           ,-----------------------------------------------------.
- * | Next/Prev | 9    | 7  @ | 5  * | 3  ^ | 1  $ | F11  |           |  Fx  | 0  % | 2  ! | 4  # | 6  & | 8    |    Plover |
+ * | Next/Prev | 9    | 7  @ | 5  * | 3  ^ | 1  $ | F11  |           |  Fx  | 0  % | 2  ! | 4  # | 6  & | 8    |           |
  * |-----------+------+------+------+------+-------------|           |------+------+------+------+------+------+-----------|
  * |         ~ |   '  |   ,  |   .  |   P  |   Y  |   (  |           |  )   |   F  |   G  |   C  |   R  |  L   | \         |
  * |-----------+------+------+------+------+------|   [  |           |  ]   |------+------+------+------+------+-----------|
  * | Tab/ARROW |   A  |   O  |   E  |   U  |   I  |------|           |------|   D  |   H  |   T  |   N  |  S   | = / Arrow |
- * |-----------+------+------+------+------+------| tmux |           | tmux |------+------+------+------+------+-----------|
- * | Play/Pause|   /  |   Q  |   J  |   K  |   X  |      |           | Pane |   B  |   M  |   W  |   V  |  Z   | Stop/Reset|
+ * |-----------+------+------+------+------+------|      |           |      |------+------+------+------+------+-----------|
+ * | Play/Pause|   /  |   Q  |   J  |   K  |   X  |      |           |      |   B  |   M  |   W  |   V  |  Z   | Stop/Reset|
  * `-----------+------+------+------+------+-------------'           `-------------+------+------+------+------+-----------'
  *     |       |      |      |      |   :  |                                       |   -  |      |      |      |       |
  *     `-----------------------------------'                                       `-----------------------------------'
@@ -135,7 +100,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  *                                  ,------|------|------|           |------+------+------.
  *                                  |      |      | Ctrl |           | LEAD |      |      |
  *                                  |Backsp|LShift|------|           |------| Enter| Space|
- *                                  |      |      | ESC  |           | HUN  |      |      |
+ *                                  |      |      | ESC  |           | GAME |      |      |
  *                                  `--------------------'           `--------------------'
  */
 [BASE] = LAYOUT_ergodox(
@@ -143,71 +108,26 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  M(A_MPN)           ,M(A_9)      ,M(A_7)      ,M(A_5)  ,M(A_3)  ,M(A_1)  ,KC_F11
 ,KC_GRV             ,KC_QUOT     ,KC_COMM     ,KC_DOT  ,KC_P    ,KC_Y    ,TD(CT_LBP)
 ,TD(CT_TA)          ,KC_A        ,KC_O        ,KC_E    ,KC_U    ,KC_I
-,KC_MPLY            ,KC_SLSH     ,KC_Q        ,KC_J    ,KC_K    ,KC_X    ,TD(CT_TMUX)
+,KC_MPLY            ,KC_SLSH     ,KC_Q        ,KC_J    ,KC_K    ,KC_X    ,KC_NO
 ,KC_NO              ,KC_NO       ,KC_NO       ,KC_NO   ,TD(CT_CLN)
 
-                                                            ,F(F_ALT),F(F_GUI)
+                                                            ,F(F_ALT),KC_LGUI
                                                                      ,F(F_CTRL)
                                                     ,KC_BSPC,F(F_SFT),KC_ESC
 
                                                                 // right hand
-                                                               ,M(Fx)     ,M(A_0)  ,M(A_2)    ,M(A_4)  ,M(A_6)  ,M(A_8)   ,M(A_PLVR)
+                                                               ,M(Fx)     ,M(A_0)  ,M(A_2)    ,M(A_4)  ,M(A_6)  ,M(A_8)   ,KC_NO
                                                                ,TD(CT_RBP),KC_F    ,KC_G      ,KC_C    ,KC_R    ,KC_L     ,KC_BSLS
                                                                           ,KC_D    ,KC_H      ,KC_T    ,KC_N    ,KC_S     ,KC_EQL
-                                                               ,TD(CT_TPS),KC_B    ,KC_M      ,KC_W    ,KC_V    ,KC_Z     ,TD(CT_SR)
+                                                               ,KC_NO     ,KC_B    ,KC_M      ,KC_W    ,KC_V    ,KC_Z     ,TD(CT_SR)
                                                                                    ,KC_MINS   ,KC_NO   ,KC_NO   ,KC_NO    ,KC_NO
 
                                                                ,OSL(NMDIA),KC_DEL
                                                                ,KC_LEAD
-                                                               ,F(F_HUN)  ,KC_ENT ,KC_SPC
+                                                               ,TG(GAME)  ,KC_ENT ,KC_SPC
     ),
 
-/* Keymap 1: Adore layer
- *
- * ,-----------------------------------------------------.           ,-----------------------------------------------------.
- * | Play/Pause| 9    | 7  @ | 5  * | 3  ^ | 1  $ | F11  |           |  Fx  | 0  % | 2  ! | 4  # | 6  & | 8    |    Plover |
- * |-----------+------+------+------+------+-------------|           |------+------+------+------+------+------+-----------|
- * |         \ |   X  |   W  |   C  |   H  |   F  |   (  |           |  )   |   M  |   G  |   L  |   P  |  /   | `~        |
- * |-----------+------+------+------+------+------|   [  |           |  ]   |------+------+------+------+------+-----------|
- * | Tab/Arrow |   A  |   O  |   E  |   I  |   U  |------|           |------|   D  |   R  |   T  |   N  |  S   | =         |
- * |-----------+------+------+------+------+------| tmux |           | tmux |------+------+------+------+------+-----------|
- * |           |   Z  |   Q  |   '  |   ,  |   .  |      |           | pane |   B  |   K  |   V  |   Y  |  J   |           |
- * `-----------+------+------+------+------+-------------'           `-------------+------+------+------+------+-----------'
- *     |       |      |      |      |   :  |                                       |   -  |      |      |      |       |
- *     `-----------------------------------'                                       `-----------------------------------'
- *                                         ,-------------.           ,-------------.
- *                                         | LAlt | GUI  |           | MDIA | Del  |
- *                                  ,------|------|------|           |------+------+------.
- *                                  |      |      | Ctrl |           | HUN  |      |      |
- *                                  |Backsp|LShift|------|           |------| Enter| Space|
- *                                  |      |      | ESC  |           | LEAD |      |      |
- *                                  `--------------------'           `--------------------'
- */
-[ADORE] = LAYOUT_ergodox(
-// left hand
- KC_MPLY            ,M(A_9)      ,M(A_7)      ,M(A_5)  ,M(A_3)  ,M(A_1) ,KC_F11
-,KC_BSLS            ,KC_X        ,KC_W        ,KC_C    ,KC_H    ,KC_F   ,TD(CT_LBP)
-,TD(CT_TA)          ,KC_A        ,KC_O        ,KC_E    ,KC_I    ,KC_U
-,KC_NO              ,KC_Z        ,KC_Q        ,KC_QUOT ,KC_COMM ,KC_DOT ,TD(CT_TMUX)
-,KC_NO              ,KC_NO       ,KC_NO       ,KC_NO   ,TD(CT_CLN)
-
-                                                            ,F(F_ALT),F(F_GUI)
-                                                                     ,F(F_CTRL)
-                                                    ,KC_BSPC,F(F_SFT),KC_ESC
-
-                                                                // right hand
-                                                               ,M(Fx)     ,M(A_0)   ,M(A_2)  ,M(A_4)  ,M(A_6)  ,M(A_8)  ,M(A_PLVR)
-                                                               ,TD(CT_RBP),KC_M     ,KC_G    ,KC_L    ,KC_P    ,KC_SLSH ,KC_GRV
-                                                                          ,KC_D     ,KC_R    ,KC_T    ,KC_N    ,KC_S    ,KC_EQL
-                                                               ,TD(CT_TPS),KC_B     ,KC_K    ,KC_V    ,KC_Y    ,KC_J    ,KC_NO
-                                                                                    ,KC_MINS ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
-
-                                                               ,OSL(NMDIA),KC_DEL
-                                                               ,F(F_HUN)
-                                                               ,KC_LEAD   ,KC_ENT ,KC_SPC
-    ),
-
-/* Keymap 2: Arrow layer
+/* Keymap 1: Arrow layer
  *
  * ,-----------------------------------------------------.           ,-----------------------------------------------------.
  * |           |      |      |      |      |      |      |           |      |      |      |      |      |      |           |
@@ -253,54 +173,8 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                                ,KC_TRNS ,KC_PGUP ,KC_PGDN
     ),
 
-/* Keymap 3: Application select layer
- *
- * ,-----------------------------------------------------.           ,-----------------------------------------------------.
- * |           |Music |Slack |Emacs |Term  |Chrome|      |           |      |Social|PWMgr |Scl2  |      |      |           |
- * |-----------+------+------+------+------+-------------|           |------+------+------+------+------+------+-----------|
- * |           |      |      |      |      |      |      |           |      |      |      |      |      |      |           |
- * |-----------+------+------+------+------+------|      |           |      |------+------+------+------+------+-----------|
- * |           |      |      |      |      |      |------|           |------|      |      |      |      |      |           |
- * |-----------+------+------+------+------+------|      |           |      |------+------+------+------+------+-----------|
- * |           |      |      |      |      |      |      |           |      |      |      |      |      |      |           |
- * `-----------+------+------+------+------+-------------'           `-------------+------+------+------+------+-----------'
- *      |      |      |      |      |      |                                       |      |      |      |      |      |
- *      `----------------------------------'                                       `----------------------------------'
- *                                         ,-------------.           ,-------------.
- *                                         |      |      |           |      |      |
- *                                  ,------|------|------|           |------+------+------.
- *                                  |      |      |      |           |      |      |      |
- *                                  |      |      |------|           |------|      |      |
- *                                  |      |      |      |           |      |      |      |
- *                                  `--------------------'           `--------------------'
- */
 
-[APPSEL] = LAYOUT_ergodox(
-// left hand
- KC_TRNS ,M(APP_MSIC),M(APP_SLK),M(APP_EMCS),M(APP_TERM),M(APP_CHRM),KC_TRNS
-,KC_TRNS ,KC_TRNS    ,KC_TRNS   ,KC_TRNS    ,KC_TRNS    ,KC_TRNS    ,KC_TRNS
-,KC_TRNS ,KC_TRNS    ,KC_TRNS   ,KC_TRNS    ,KC_TRNS    ,KC_TRNS
-,KC_TRNS ,KC_TRNS    ,KC_TRNS   ,KC_TRNS    ,KC_TRNS    ,KC_TRNS    ,KC_TRNS
-,KC_TRNS ,KC_TRNS    ,KC_TRNS   ,KC_TRNS    ,KC_TRNS
-
-                                             ,KC_TRNS ,KC_TRNS
-                                                      ,KC_TRNS
-                                    ,KC_TRNS ,KC_TRNS ,KC_TRNS
-
-                                                               // right hand
-                                                              ,KC_TRNS ,M(APP_SOCL) ,M(APP_PMGR) ,M(APP_SCL2) ,KC_NO   ,KC_NO   ,KC_TRNS
-                                                              ,KC_TRNS ,KC_TRNS     ,KC_TRNS     ,KC_TRNS     ,KC_TRNS ,KC_TRNS ,KC_TRNS
-                                                                       ,KC_TRNS     ,KC_TRNS     ,KC_TRNS     ,KC_TRNS ,KC_TRNS ,KC_TRNS
-                                                              ,KC_TRNS ,KC_TRNS     ,KC_TRNS     ,KC_TRNS     ,KC_TRNS ,KC_TRNS ,KC_TRNS
-                                                                                    ,KC_TRNS     ,KC_TRNS     ,KC_TRNS ,KC_TRNS ,KC_TRNS
-
-                                                              ,KC_TRNS ,KC_TRNS
-                                                              ,KC_TRNS
-                                                              ,KC_TRNS ,KC_TRNS  ,KC_TRNS
-    ),
-
-
-/* Keymap 4: Hungarian Layer
+/* Keymap 2: Gaming Layer
  *
  * ,-----------------------------------------------------.           ,-----------------------------------------------------.
  * |           |      |      |      |      |      |      |           |      |      |      |      |      |      |           |
@@ -322,31 +196,31 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
  *                                  `--------------------'           `--------------------'
  */
 
-[HUN] = LAYOUT_ergodox(
+[GAME] = LAYOUT_ergodox(
 // left hand
- KC_NO   ,KC_NO   ,KC_NO    ,KC_NO   ,KC_NO    ,KC_NO   ,KC_NO
-,KC_NO   ,KC_NO   ,M(HU_OEE),KC_NO   ,M(HU_UEE),KC_NO   ,KC_NO
-,KC_NO   ,M(HU_AA),M(HU_OO) ,M(HU_EE),M(HU_UU) ,M(HU_II)
-,KC_NO   ,KC_NO   ,M(HU_OE) ,KC_NO   ,M(HU_UE) ,KC_NO   ,KC_NO
-,KC_NO   ,KC_NO   ,KC_NO    ,KC_NO   ,KC_NO
+ KC_ESC             ,KC_9        ,KC_7        ,KC_5    ,KC_3    ,KC_1    ,KC_F11
+,KC_GRV             ,KC_QUOT     ,KC_COMM     ,KC_DOT  ,KC_P    ,KC_Y    ,KC_F1
+,KC_TAB             ,KC_A        ,KC_O        ,KC_E    ,KC_U    ,KC_I
+,KC_LSFT            ,KC_SLSH     ,KC_Q        ,KC_J    ,KC_K    ,KC_X    ,KC_SCLN
+,KC_LBRC            ,KC_F2       ,KC_F3       ,KC_LALT ,KC_LCTL
 
-                                             ,KC_NO   ,KC_NO
-                                                      ,KC_NO
-                                    ,KC_NO   ,KC_TRNS ,KC_TRNS
+                                                            ,KC_LALT ,KC_ENT
+                                                                     ,KC_LCTL
+                                                    ,KC_BSPC,SH_MON  ,SH_TG
 
                                                                 // right hand
-                                                               ,KC_TRNS ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
-                                                               ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
-                                                                        ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
-                                                               ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
-                                                                                 ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO   ,KC_NO
+                                                               ,KC_F7     ,KC_0    ,KC_2      ,KC_4    ,KC_6    ,KC_8     ,TG(GAME)
+                                                               ,KC_F4     ,KC_F    ,KC_G      ,KC_C    ,KC_R    ,KC_L     ,KC_BSLS
+                                                                          ,KC_D    ,KC_H      ,KC_T    ,KC_N    ,KC_S     ,KC_EQL
+                                                               ,KC_MINS   ,KC_B    ,KC_M      ,KC_W    ,KC_V    ,KC_Z     ,KC_LSFT
+                                                                                   ,KC_LCTL   ,KC_LALT ,KC_F6   ,KC_F5    ,KC_RBRC
 
-                                                               ,KC_NO   ,KC_NO
-                                                               ,KC_NO
-                                                               ,F(F_BSE),KC_TRNS  ,KC_TRNS
+                                                               ,KC_ENT    ,KC_LALT
+                                                               ,KC_LCTL
+                                                               ,SH_TG     ,MO(ARRW) ,KC_SPC
     ),
 
-/* Keymap 5: Navigation & Media layer
+/* Keymap 3: Navigation & Media layer
  *
  * ,-----------------------------------------------------.           ,-----------------------------------------------------.
  * |           |  F9  |  F7  |  F5  |  F3  |  F1  |ScrLCK|           |      | F10  |  F2  |  F4  |  F6  |  F8  |           |
@@ -390,135 +264,21 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                                                      ,KC_NO     ,KC_NO   ,KC_NO
     ),
 
-/* Keymap 6: Steno for Plover
- *
- * ,--------------------------------------------------.           ,--------------------------------------------------.
- * |        |      |      |      |      |      |      |           |      |      |      |      |      |      |  BASE  |
- * |--------+------+------+------+------+-------------|           |------+------+------+------+------+------+--------|
- * |        |   #  |   #  |   #  |   #  |   #  |   #  |           |  #   |  #   |  #   |   #  |   #  |  #   |   #    |
- * |--------+------+------+------+------+------|      |           |      |------+------+------+------+------+--------|
- * |        |      |   T  |   P  |   H  |      |------|           |------|      |  F   |   P  |   L  |  T   |   D    |
- * |--------+   S  +------+------+------+   *  |   *  |           |  *   |  *   +------+------+------+------+--------|
- * |        |      |   K  |   W  |   R  |      |      |           |      |      |  R   |   B  |   G  |  S   |   Z    |
- * `--------+------+------+------+------+-------------'           `-------------+------+------+------+------+--------'
- *   |      |      |      |      |      |                                       |      |      |      |      |      |
- *   `----------------------------------'                                       `----------------------------------'
- *                                        ,-------------.       ,-------------.
- *                                        |      |      |       |      |      |
- *                                 ,------|------|------|       |------+------+------.
- *                                 |      |      |      |       |      |      |      |
- *                                 |   A  |   O  |------|       |------|  E   |  U   |
- *                                 |      |      |      |       |      |      |      |
- *                                 `--------------------'       `--------------------'
- */
-
-[PLVR] = LAYOUT_ergodox(
-// left hand
-KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,  KC_NO,   KC_NO,
-KC_NO,  PV_NUM, PV_NUM, PV_NUM,  PV_NUM, PV_NUM,  PV_NUM,
-KC_NO,  PV_LS,  PV_LT,  PV_LP,   PV_LH,  PV_STAR,
-KC_NO,  PV_LS,  PV_LK,  PV_LW,   PV_LR,  PV_STAR, PV_STAR,
-KC_NO,  KC_NO,  KC_NO,  KC_NO,   KC_NO,
-                                           KC_NO, KC_NO,
-                                           KC_NO,
-                                           PV_A,  PV_O,  KC_NO,
-
-                                                 // right hand
-                                                 KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,   M(A_PLVR),
-                                                 PV_NUM,  PV_NUM,  PV_NUM,  PV_NUM,  PV_NUM,  PV_NUM,  PV_NUM,
-                                                          PV_STAR, PV_RF,   PV_RP,   PV_RL,   PV_RT,   PV_RD,
-                                                 PV_STAR, PV_STAR, PV_RR,   PV_RB,   PV_RG,   PV_RS,   PV_RZ,
-                                                                   KC_NO,   KC_NO,   KC_NO,   KC_NO,   KC_NO,
-                                           KC_NO,      KC_NO,
-                                           KC_NO,
-                                           KC_NO,PV_E, PV_U
- ),
-
 };
 
 const uint16_t PROGMEM fn_actions[] = {
    [F_BSE]  = ACTION_LAYER_CLEAR(ON_PRESS)
-  ,[F_HUN]  = ACTION_LAYER_INVERT(HUN, ON_PRESS)
-  ,[F_GUI]  = ACTION_MACRO_TAP(A_GUI)
   ,[F_SFT]  = ACTION_MODS_ONESHOT (MOD_LSFT)
   ,[F_ALT]  = ACTION_MODS_ONESHOT (MOD_LALT)
   ,[F_CTRL] = ACTION_MODS_ONESHOT (MOD_LCTL)
 };
-
-static void toggle_steno(int pressed)
-{
-  uint8_t layer = biton32(layer_state);
-
-  if (pressed) {
-    if (layer != PLVR) layer_on(PLVR); else layer_off(PLVR);
-
-    register_code(PV_LP);
-    register_code(PV_LH);
-    register_code(PV_LR);
-    register_code(PV_O);
-    register_code(PV_RL);
-    register_code(PV_RG);
-  } else {
-    unregister_code(PV_LP);
-    unregister_code(PV_LH);
-    unregister_code(PV_LR);
-    unregister_code(PV_O);
-    unregister_code(PV_RL);
-    unregister_code(PV_RG);
-  }
-}
-
-static macro_t *ang_do_hun (keyrecord_t *record, uint16_t accent, uint16_t hun_char)
-{
-  uint8_t need_shift = 0;
-  uint8_t hold_shift = 0;
-
-  if (!record->event.pressed)
-    return MACRO_NONE;
-
-  layer_off (HUN);
-
-  if (keyboard_report->mods & MOD_BIT (KC_LSFT)) {
-    hold_shift = 1;
-    need_shift = 1;
-    unregister_code (KC_LSFT);
-  }
-  if ((get_oneshot_mods () & MOD_BIT(KC_LSFT)) && !has_oneshot_mods_timed_out ()) {
-    need_shift = 1;
-    hold_shift = 0;
-    unregister_code (KC_LSFT);
-  }
-
-  clear_oneshot_mods ();
-
-  register_code (KC_RALT);
-  unregister_code (KC_RALT);
-  if (accent == (KC_DQT)) {
-    register_code (KC_RSFT);
-  }
-  register_code (accent);
-  unregister_code (accent);
-  if (need_shift && accent != (KC_DQT)) {
-    register_code (KC_RSFT);
-  } else if (accent == (KC_DQT) && !need_shift) {
-    unregister_code (KC_RSFT);
-  }
-  register_code (hun_char);
-  unregister_code (hun_char);
-  if (need_shift || accent == (KC_DQT))
-    unregister_code (KC_RSFT);
-  if (hold_shift)
-    register_code (KC_LSFT);
-
-  return MACRO_NONE;
-}
 
 static void ang_handle_num_row(uint8_t id, keyrecord_t *record) {
   uint8_t idx = id - A_1;
   uint8_t kc;
   static bool shifted[10];
 
-  if (keyboard_report->mods & MOD_BIT(KC_LSFT) ||
+  if (get_mods() & MOD_BIT(KC_LSFT) ||
       ((get_oneshot_mods() & MOD_BIT(KC_LSFT)) && !has_oneshot_mods_timed_out())) {
     if (record->event.pressed)
       shifted[idx] = true;
@@ -574,7 +334,7 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
       switch(id) {
       case A_MPN:
         if (record->event.pressed) {
-          if (keyboard_report->mods & MOD_BIT(KC_LSFT) ||
+          if (get_mods() & MOD_BIT(KC_LSFT) ||
               ((get_oneshot_mods() & MOD_BIT(KC_LSFT)) && !has_oneshot_mods_timed_out())) {
             int oneshot = ((get_oneshot_mods() & MOD_BIT(KC_LSFT)) && !has_oneshot_mods_timed_out());
 
@@ -593,32 +353,7 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
         }
         break;
 
-        /* Hungarian layer */
-      case HU_AA:
-        return ang_do_hun (record, KC_QUOT, KC_A);
-      case HU_OO:
-        return ang_do_hun (record, KC_QUOT, KC_O);
-      case HU_EE:
-        return ang_do_hun (record, KC_QUOT, KC_E);
-      case HU_UU:
-        return ang_do_hun (record, KC_QUOT, KC_U);
-      case HU_II:
-        return ang_do_hun (record, KC_QUOT, KC_I);
-      case HU_OE:
-        return ang_do_hun (record, KC_DQT, KC_O);
-      case HU_UE:
-        return ang_do_hun (record, KC_DQT, KC_U);
-      case HU_OEE:
-        return ang_do_hun (record, KC_EQL, KC_O);
-      case HU_UEE:
-        return ang_do_hun (record, KC_EQL, KC_U);
-
-        /* Plover base */
-      case A_PLVR:
-        toggle_steno(record->event.pressed);
-        break;
-
-        /* Fx */
+                /* Fx */
       case Fx:
         if (record->event.pressed) {
           set_oneshot_mods (MOD_LALT);
@@ -627,73 +362,6 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
         } else {
           clear_oneshot_layer_state (ONESHOT_PRESSED);
         }
-        break;
-
-        /* GUI & AppSel */
-      case A_GUI:
-        if (record->event.pressed) {
-          register_code (KC_LGUI);
-          if (record->tap.count && !record->tap.interrupted) {
-            if (record->tap.count == 2) {
-              uprintf("CMD:appsel_start\n");
-              layer_on (APPSEL);
-              set_oneshot_layer (APPSEL, ONESHOT_START);
-            } else if (record->tap.count >= 3) {
-              uprintf("CMD:appsel_helper\n");
-              layer_off (APPSEL);
-              clear_oneshot_layer_state (ONESHOT_PRESSED);
-            }
-          } else {
-            record->tap.count = 0;
-          }
-          gui_timer = 0;
-        } else {
-          if (record->tap.count >= 2)
-            {
-              clear_oneshot_layer_state (ONESHOT_PRESSED);
-            }
-          gui_timer = timer_read ();
-        }
-        break;
-
-      case APP_SLK:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_slack\n");
-        break;
-
-      case APP_EMCS:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_emacs\n");
-        break;
-
-      case APP_TERM:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_term\n");
-        break;
-
-      case APP_CHRM:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_chrome\n");
-        break;
-
-      case APP_MSIC:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_music\n");
-        break;
-
-      case APP_SOCL:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_social\n");
-        break;
-
-      case APP_PMGR:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_pwmgr\n");
-        break;
-
-      case APP_SCL2:
-        if (record->event.pressed)
-          uprintf("CMD:appsel_social2\n");
         break;
 
         // number row and symbols
@@ -707,7 +375,6 @@ const macro_t *action_get_macro(keyrecord_t *record, uint8_t id, uint8_t opt)
 
 // Runs just one time when the keyboard initializes.
 void matrix_init_user(void) {
-  uint8_t dl;
 
   set_unicode_input_mode(UC_LNX);
 
@@ -725,10 +392,6 @@ void matrix_init_user(void) {
 
   if (!eeconfig_is_enabled())
     eeconfig_init();
-  dl = eeconfig_read_default_layer ();
-  if (dl == (1UL << ADORE)) {
-    is_adore = 1;
-  }
 };
 
 LEADER_EXTERNS();
@@ -787,36 +450,6 @@ static void ang_tap_dance_ta_reset (qk_tap_dance_state_t *state, void *user_data
     layer_off (ARRW);
 }
 
-static void ang_tap_dance_tmux_finished (qk_tap_dance_state_t *state, void *user_data) {
-  if (state->count == 1) {
-    register_code(KC_LALT);
-    register_code(KC_SPC);
-    unregister_code(KC_SPC);
-    unregister_code(KC_LALT);
-  } else {
-    register_code(KC_LCTL);
-    register_code(KC_A);
-    unregister_code(KC_A);
-    unregister_code(KC_LCTL);
-  }
-}
-
-static void ang_tap_dance_tmux_pane_select (qk_tap_dance_state_t *state, void *user_data) {
-  uint8_t kc = KC_P;
-
-  if (state->count >= 2) {
-    kc = KC_Z;
-  }
-
-  register_code(KC_LALT);
-  register_code(KC_SPC);
-  unregister_code(KC_SPC);
-  unregister_code(KC_LALT);
-
-  register_code(kc);
-  unregister_code(kc);
-}
-
 static void
 _td_sr_each (qk_tap_dance_state_t *state, void *user_data) {
   skip_leds = true;
@@ -861,6 +494,8 @@ _td_sr_reset (qk_tap_dance_state_t *state, void *user_data) {
   ergodox_right_led_2_off ();
   wait_ms (50);
   ergodox_right_led_3_off ();
+  wait_ms(1000);
+  skip_leds = false;
 
   if (state->count == 1) {
     unregister_code (KC_MSTP);
@@ -914,75 +549,67 @@ qk_tap_dance_action_t tap_dance_actions[] = {
    }
   ,[CT_LBP] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, _td_brackets_finished, _td_brackets_reset)
   ,[CT_RBP] = ACTION_TAP_DANCE_FN_ADVANCED (NULL, _td_brackets_finished, _td_brackets_reset)
-  ,[CT_TMUX]= ACTION_TAP_DANCE_FN (ang_tap_dance_tmux_finished)
-  ,[CT_TPS] = ACTION_TAP_DANCE_FN (ang_tap_dance_tmux_pane_select)
   ,[CT_SR]  = ACTION_TAP_DANCE_FN_ADVANCED (_td_sr_each, _td_sr_finished, _td_sr_reset)
 };
 
 // Runs constantly in the background, in a loop.
 void matrix_scan_user(void) {
   uint8_t layer = biton32(layer_state);
-  bool is_arrow = false;
-
-  if (gui_timer && timer_elapsed (gui_timer) > TAPPING_TERM)
-    unregister_code (KC_LGUI);
+  //bool is_arrow = false;
 
   if (!skip_leds) {
-    if (layer == HUN) {
+    if (layer == GAME) {
       ergodox_right_led_2_on();
       ergodox_right_led_3_on();
+      //TODO
+      // if (swap_hands) {
+      // ergodox_right_led_1_on ();
+      // }
+    } else if (layer == ARRW) {
+      ergodox_right_led_1_on ();
+      ergodox_right_led_3_on ();
     } else if (layer == NMDIA) {
       ergodox_right_led_1_on();
       ergodox_right_led_2_on();
-    } else if (layer == PLVR) {
-      ergodox_right_led_1_on ();
-      ergodox_right_led_2_on ();
-      ergodox_right_led_3_on ();
-    } else if (layer == ADORE) {
-      ergodox_right_led_1_on ();
-      ergodox_right_led_2_on ();
-      ergodox_right_led_3_on ();
-
-      ergodox_right_led_2_set (LED_BRIGHTNESS_HI);
     }
   }
 
-  if (layer_state & (1UL << ARRW)) {
-    if (!skip_leds) {
-      ergodox_right_led_1_on ();
-      ergodox_right_led_3_on ();
-    }
-    is_arrow = true;
-  }
+  // if (layer_state & (1UL << ARRW)) {
+  //   if (!skip_leds) {
+  //     ergodox_right_led_1_on ();
+  //     ergodox_right_led_3_on ();
+  //   }
+  //   is_arrow = true;
+  // }
 
   if (!skip_leds) {
-    if (keyboard_report->mods & MOD_BIT(KC_LSFT) ||
+    if (get_mods() & MOD_BIT(KC_LSFT) ||
         ((get_oneshot_mods() & MOD_BIT(KC_LSFT)) && !has_oneshot_mods_timed_out())) {
       ergodox_right_led_1_set (LED_BRIGHTNESS_HI);
       ergodox_right_led_1_on ();
     } else {
       ergodox_right_led_1_set (LED_BRIGHTNESS_LO);
-      if (layer != NMDIA && layer != PLVR && layer != ADORE && !is_arrow)
+      if (layer != ARRW && layer != NMDIA)
         ergodox_right_led_1_off ();
     }
 
-    if (keyboard_report->mods & MOD_BIT(KC_LALT) ||
+    if (get_mods() & MOD_BIT(KC_LALT) ||
         ((get_oneshot_mods() & MOD_BIT(KC_LALT)) && !has_oneshot_mods_timed_out())) {
       ergodox_right_led_2_set (LED_BRIGHTNESS_HI);
       ergodox_right_led_2_on ();
     } else {
       ergodox_right_led_2_set (LED_BRIGHTNESS_LO);
-      if (layer != HUN && layer != NMDIA && layer != PLVR && layer != ADORE)
+      if (layer != GAME && layer != NMDIA)
         ergodox_right_led_2_off ();
     }
 
-    if (keyboard_report->mods & MOD_BIT(KC_LCTRL) ||
+    if (get_mods() & MOD_BIT(KC_LCTRL) ||
         ((get_oneshot_mods() & MOD_BIT(KC_LCTRL)) && !has_oneshot_mods_timed_out())) {
       ergodox_right_led_3_set (LED_BRIGHTNESS_HI);
       ergodox_right_led_3_on ();
     } else {
       ergodox_right_led_3_set (LED_BRIGHTNESS_LO);
-      if (layer != HUN && layer != PLVR && layer != ADORE && !is_arrow)
+      if (layer != GAME && layer != ARRW)
         ergodox_right_led_3_off ();
     }
   }
@@ -1074,44 +701,6 @@ void matrix_scan_user(void) {
     SEQ_TWO_KEYS (KC_W, KC_M) {
       uprintf("CMD:wm\n");
     }
-
-    SEQ_ONE_KEY (KC_A) {
-      if (is_adore == 0) {
-        default_layer_and (0);
-        default_layer_or ((1UL << ADORE));
-        eeconfig_update_default_layer ((1UL << ADORE));
-        is_adore = 1;
-
-        ergodox_led_all_off ();
-        ergodox_right_led_3_on ();
-        wait_ms (100);
-        ergodox_right_led_2_on ();
-        wait_ms (100);
-        ergodox_right_led_3_off ();
-        ergodox_right_led_1_on ();
-        wait_ms (100);
-        ergodox_right_led_2_off ();
-        wait_ms (100);
-        ergodox_right_led_1_off ();
-      } else {
-        is_adore = 0;
-        default_layer_and (0);
-        default_layer_or (1UL << BASE);
-        eeconfig_update_default_layer ((1UL << BASE));
-
-        ergodox_led_all_off ();
-        ergodox_right_led_1_on ();
-        wait_ms (100);
-        ergodox_right_led_2_on ();
-        wait_ms (100);
-        ergodox_right_led_1_off ();
-        ergodox_right_led_3_on ();
-        wait_ms (100);
-        ergodox_right_led_2_off ();
-        wait_ms (100);
-        ergodox_right_led_3_off ();
-      }
-    }
   }
 }
 
@@ -1140,24 +729,17 @@ bool process_record_user (uint16_t keycode, keyrecord_t *record) {
   if (log_enable) {
     uint8_t layer = biton32(layer_state);
 
-    if ((layer == ADORE) || (layer == BASE))
+    if (layer == BASE)
       uprintf ("KL: col=%02d, row=%02d, pressed=%d, layer=%s\n", record->event.key.col,
-               record->event.key.row, record->event.pressed, (is_adore) ? "ADORE" : "Dvorak");
+               record->event.key.row, record->event.pressed, "Dvorak");
   }
 #endif
 
   if (keycode == KC_ESC && record->event.pressed) {
-    bool queue = true;
 
     if ((get_oneshot_mods ()) && !has_oneshot_mods_timed_out ()) {
       clear_oneshot_mods ();
-      queue = false;
     }
-    if (layer_state & (1UL<<HUN)) {
-      layer_off (HUN);
-      queue = false;
-    }
-    return queue;
   }
 
   if (time_travel && !record->event.pressed) {
